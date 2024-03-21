@@ -1,0 +1,6 @@
+venv
+migrations
+__pycache__
+.vscode
+templates
+static
