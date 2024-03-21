@@ -9,12 +9,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'gunjan'
 db.init_app(app) 
 migrate = Migrate(app, db)
-def validation(email):
-    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
-    if re.fullmatch(regex, email):
-        return "valid email"
-    else:
-        "Invalid Email"
 
 
 @app.route('/register', methods=['POST'])
