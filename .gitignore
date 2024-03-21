@@ -4,3 +4,4 @@ __pycache__
 .vscode
 templates
 static
+requirements.txt
