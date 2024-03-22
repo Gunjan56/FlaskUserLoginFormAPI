@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from models.model import db, User
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -60,9 +60,9 @@ def login():
 def get_user():
     try:
         data = User.query.all()
-        return make_response(jsonify([user.json() for user in data])), 200
+        return jsonify([user.json() for user in data]), 200
     except:
-        return make_response(jsonify({'message': 'error getting users'}), 500)
+        return jsonify({'message': 'error getting users'}), 500
 
 
 @app.route('/user/<int:id>', methods=['GET'])
@@ -70,10 +70,10 @@ def getUserBy_id(id):
     try:
         data = User.query.filter_by(id=id).first()
         if data:
-            return make_response(jsonify({'user': data.json()}), 200)
-        return make_response(jsonify({'message': 'User Not Found'}), 404)
+            return jsonify({'user': data.json()}), 200
+        return jsonify({'message': 'User Not Found'}), 404
     except:
-        return make_response(jsonify({'message': 'Error Getting User'}), 500)
+        return jsonify({'message': 'Error Getting User'}), 500
     
 @app.route('/update/<int:id>', methods=['PUT'])
 def update_user(id):
