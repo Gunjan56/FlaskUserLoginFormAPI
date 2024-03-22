@@ -41,15 +41,11 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    username = data['username']
     email = data['email']
     password = data['password']
-    firstname = data['firstname']
-    lastname = data['lastname']
-    mobileNo = data['mobileNo']
-    address = data['address']
+   
 
-    user = User.query.filter_by(username=username, email=email).first()
+    user = User.query.filter_by(email=email, password=password).first()
 
     if user and check_password_hash(user.password, password):
         return jsonify({'message': "You login successfully!"})
@@ -102,7 +98,7 @@ def delete(id):
         if user:
             db.session.delete(user)
             db.session.commit()
-            return (jsonify({'message': "User Deleted sucdessfully"}), 200)
+            return (jsonify({'message': "User Deleted successfully"}), 200)
         return (jsonify({'message': "User Not Found"}), 404)
     except:
         return (jsonify({'message': 'Error while deleting user'}), 500)
