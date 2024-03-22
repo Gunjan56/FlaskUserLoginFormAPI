@@ -22,15 +22,13 @@ def register():
     if not re.match(email_Validation, email):
         return jsonify({'message': 'Enter a valid email'}), 400
     
-    userDetails = User.query.filter_by(username=username, email=email, password=password).first()
-    
-    
+    userDetails = User.query.filter_by(username=username, email=email).first()
     
     if userDetails:
         return jsonify({"message": "User already registered"} )
     
     else:
-        user = User(username=username, email=email, password=password)
+        user = User(username=username, email=email, password=pass_validate)
         db.session.add(user)
         db.session.commit()
 
@@ -43,7 +41,7 @@ def login():
     email = data['email']
     password = data['password']
 
-    user = User.query.filter_by(username=username, email=email, password=password).first()
+    user = User.query.filter_by(username=username, email=email).first()
 
     if user and check_password_hash(user.password, password):
         return jsonify({'message': "You login successfully!"})
