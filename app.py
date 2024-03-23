@@ -49,7 +49,7 @@ def login():
     password = data['password']
    
 
-    user = User.query.filter_by(email=email, password=password).first()
+    user = User.query.filter_by(email=email).first()
 
     if user and check_password_hash(user.password, password):
         access_token = create_access_token(identity=email)
