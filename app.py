@@ -1,11 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from models.model import db, User
+from flask_jwt_extended import create_access_token, jwt_required,get_jwt_identity,JWTManager
+
+
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'gunjan'
+app.config['JWT_SECRET_KEY'] = 'gunjan'
+JWT = JWTManager(app)
 db.init_app(app) 
 migrate = Migrate(app, db)
 
@@ -48,11 +52,13 @@ def login():
     user = User.query.filter_by(email=email, password=password).first()
 
     if user and check_password_hash(user.password, password):
-        return jsonify({'message': "You login successfully!"})
+        access_token = create_access_token(identity=email)
+        return jsonify({'access_token': access_token}),200
     else:
-        return jsonify({'message': 'Enter valid credentials to login!'})
+        return jsonify({'message': 'Enter valid credentials to login!'}),401
     
-@app.route('/get/', methods=['GET'])    
+@app.route('/get/', methods=['GET'])   
+@jwt_required() 
 def get_user():
     try:
         data = User.query.all()
@@ -62,6 +68,7 @@ def get_user():
 
 
 @app.route('/user/<int:id>', methods=['GET'])
+@jwt_required()
 def getUserBy_id(id):
     try:
         data = User.query.filter_by(id=id).first()
@@ -72,6 +79,7 @@ def getUserBy_id(id):
         return jsonify({'message': 'Error Getting User'}), 500
     
 @app.route('/update/<int:id>', methods=['PUT'])
+@jwt_required
 def update_user(id):
   try:
     user = User.query.filter_by(id=id).first()
@@ -92,6 +100,7 @@ def update_user(id):
 
 
 @app.route('/delete/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete(id):
     try:
         user = User.query.filter_by(id=id).first()
@@ -102,7 +111,6 @@ def delete(id):
         return (jsonify({'message': "User Not Found"}), 404)
     except:
         return (jsonify({'message': 'Error while deleting user'}), 500)
-
 
 if __name__ == '__main__':
     # with app.app_context():
