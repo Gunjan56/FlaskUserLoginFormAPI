@@ -1,14 +1,21 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, url_for, render_template
 from flask_migrate import Migrate
 from models.model import db, User
 from flask_jwt_extended import create_access_token, jwt_required,get_jwt_identity,JWTManager
-
-
+from flask_mail import Mail,Message
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
+import secrets
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['JWT_SECRET_KEY'] = 'gunjan'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = 'example@gmail.com'
+app.config['MAIL_PASSWORD'] = '1234'
+mail = Mail(app)
 JWT = JWTManager(app)
 db.init_app(app) 
 migrate = Migrate(app, db)
@@ -48,7 +55,6 @@ def login():
     email = data['email']
     password = data['password']
    
-
     user = User.query.filter_by(email=email).first()
 
     if user and check_password_hash(user.password, password):
@@ -57,6 +63,46 @@ def login():
     else:
         return jsonify({'message': 'Enter valid credentials to login!'}),401
     
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data['email']
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_password_token = token
+        db.session.commit()
+
+        reset_link = url_for('reset_password', token=token, _external=True)
+        send_reset_password_email(email, reset_link)
+
+        return jsonify({'message': 'link sent to your email'})
+    else:
+        return jsonify({'message': 'User not found'}), 404
+
+def send_reset_password_email(user_email, reset_link):
+    msg = Message('Reset Your Password', sender='example@gmail.com', recipients=[user_email])
+    msg.body = f'reset your password: {reset_link}'
+    mail.send(msg)
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if request.method == 'GET':
+        return render_template('reset_password.html', token=token)
+
+    if request.method == 'POST':
+        new_password = request.form['password']
+        user = User.query.filter_by(reset_password_token=token).first()
+
+        if user:
+            user.password = generate_password_hash(new_password)
+            user.reset_password_token = None
+            db.session.commit()
+            return jsonify({'message': 'Password reset successfully'}), 200
+        else:
+            return jsonify({'message': 'Invalid or expired token'}), 400
+
 @app.route('/get/', methods=['GET'])   
 @jwt_required() 
 def get_user():
@@ -98,7 +144,6 @@ def update_user(id):
   except:
     return jsonify({'message': 'Error Updating User'}), 500
 
-
 @app.route('/delete/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete(id):
@@ -113,6 +158,4 @@ def delete(id):
         return (jsonify({'message': 'Error while deleting user'}), 500)
 
 if __name__ == '__main__':
-    # with app.app_context():
-        # db.create_all()
     app.run(debug=True, port=8000)
