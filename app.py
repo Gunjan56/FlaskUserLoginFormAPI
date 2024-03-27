@@ -1,20 +1,23 @@
 from flask import Flask, request, jsonify, url_for, render_template
 from flask_migrate import Migrate
 from models.model import db, User
-from flask_jwt_extended import create_access_token, jwt_required,get_jwt_identity,JWTManager
+from flask_jwt_extended import create_access_token, jwt_required,JWTManager
 from flask_mail import Mail,Message
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
-import secrets
+import base64 
+import os 
+from dotenv import load_dotenv, dotenv_values
+load_dotenv()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['JWT_SECRET_KEY'] = 'gunjan'
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = 'xyz@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xyz'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 mail = Mail(app)
 JWT = JWTManager(app)
 db.init_app(app) 
@@ -68,41 +71,41 @@ def forgot_password():
     data = request.get_json()
     email = data['email']
     user = User.query.filter_by(email=email).first()
-
+    
     if user:
-        token = secrets.token_urlsafe(32)
-        user.reset_password_token = token
-        db.session.commit()
+        reset_token = base64.b64encode(email.encode('utf-8')).decode('utf-8')
 
-        reset_link = url_for('reset_password', token=token, _external=True)
-        send_reset_password_email(email, reset_link)
+        send_reset_password_email(email, reset_token)
 
         return jsonify({'message': 'Reset password link sent to your email'})
     else:
         return jsonify({'message': 'User not found'}), 404
 
-def send_reset_password_email(user_email, reset_link):
-    msg = Message('Reset Your Password', sender='xyz@gmail.com', recipients=[user_email])
-    msg.body = f'Reset your password: {reset_link}'
+def send_reset_password_email(user_email, reset_token):
+    msg = Message('Reset Your Password', sender=os.getenv('MAIL_USERNAME'), recipients=[user_email])
+    msg.body = f'Reset your password: {reset_token}'
     mail.send(msg)
 
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+@app.route('/reset_password/<token>', methods=['POST'])
 def reset_password(token):
-    if request.method == 'GET':
-        return render_template('reset_password.html', token=token)
+   
+    data = request.get_json()
+    new_password = data['new_password']
+    confirm_password = data['confirm_password']
+    
+    if new_password != confirm_password:
+        return jsonify({'message': 'New password and confirm password do not match'}), 400
+    
 
-    if request.method == 'POST':
-        data = request.get_json()
-        new_password = data['password']
-        user = User.query.filter_by(reset_password_token=token).first()
-
-        if user:
-            user.password = generate_password_hash(new_password)
-            user.reset_password_token = None
-            db.session.commit()
-            return jsonify({'message': 'Password reset successfully'}), 200
-        else:
-            return jsonify({'message': 'Invalid or expired token'}), 400
+    email = base64.b64decode(token).decode('utf-8')
+    
+    user = User.query.filter_by(email=email).first()
+    if user:
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+        return jsonify({'message': 'Password reset successfully'}), 200
+    else:
+        return jsonify({'message': 'User not found'}), 404
 
 @app.route('/get/', methods=['GET'])   
 @jwt_required() 
