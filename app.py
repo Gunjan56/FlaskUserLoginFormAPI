@@ -13,8 +13,8 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = 'example@gmail.com'
-app.config['MAIL_PASSWORD'] = '1234'
+app.config['MAIL_USERNAME'] = 'xyz@gmail.com'
+app.config['MAIL_PASSWORD'] = 'xyz'
 mail = Mail(app)
 JWT = JWTManager(app)
 db.init_app(app) 
@@ -77,13 +77,13 @@ def forgot_password():
         reset_link = url_for('reset_password', token=token, _external=True)
         send_reset_password_email(email, reset_link)
 
-        return jsonify({'message': 'link sent to your email'})
+        return jsonify({'message': 'Reset password link sent to your email'})
     else:
         return jsonify({'message': 'User not found'}), 404
 
 def send_reset_password_email(user_email, reset_link):
-    msg = Message('Reset Your Password', sender='example@gmail.com', recipients=[user_email])
-    msg.body = f'reset your password: {reset_link}'
+    msg = Message('Reset Your Password', sender='xyz@gmail.com', recipients=[user_email])
+    msg.body = f'Reset your password: {reset_link}'
     mail.send(msg)
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
@@ -92,7 +92,8 @@ def reset_password(token):
         return render_template('reset_password.html', token=token)
 
     if request.method == 'POST':
-        new_password = request.form['password']
+        data = request.get_json()
+        new_password = data['password']
         user = User.query.filter_by(reset_password_token=token).first()
 
         if user:
