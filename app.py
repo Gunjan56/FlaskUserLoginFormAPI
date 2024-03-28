@@ -1,28 +1,14 @@
-from flask import Flask, request, jsonify, url_for, render_template
-from flask_migrate import Migrate
-from models.model import db, User
-from flask_jwt_extended import create_access_token, jwt_required,JWTManager
-from flask_mail import Mail,Message
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import (request, jsonify)
+from models.model import (db, User)
+from flask_jwt_extended import (create_access_token, jwt_required,JWTManager)
+from flask_mail import Message
+from werkzeug.security import (check_password_hash, generate_password_hash)
 import re
 import base64 
+from utils import mail,app
 import os 
 from dotenv import load_dotenv, dotenv_values
 load_dotenv()
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
-app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-mail = Mail(app)
-JWT = JWTManager(app)
-db.init_app(app) 
-migrate = Migrate(app, db)
-
 email_Validation = r'^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$'
 
 @app.route('/register', methods=['POST'])
@@ -95,7 +81,6 @@ def reset_password(token):
     
     if new_password != confirm_password:
         return jsonify({'message': 'New password and confirm password do not match'}), 400
-    
 
     email = base64.b64decode(token).decode('utf-8')
     
